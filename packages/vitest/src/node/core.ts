@@ -1478,7 +1478,13 @@ export class Vitest {
    * @param force If true, the process will exit immediately after closing the projects.
    */
   public async exit(force = false): Promise<void> {
-    setTimeout(() => {
+    // Keep a handle on the watchdog so a close that DID finish in time cannot
+    // leave it armed. When `exit()` runs inside another Vitest (the whole
+    // `test/cli` suite drives Vitest in-process), the stray timer fires
+    // teardownTimeout later, after the harness has restored the worker's
+    // throwing `process.exit`, and surfaces as an unhandled rejection that
+    // fails a run whose tests all passed.
+    const teardownWatchdog = setTimeout(() => {
       this.report('onProcessTimeout').then(() => {
         console.warn(`close timed out after ${this.config.teardownTimeout}ms`)
 
@@ -1502,9 +1508,11 @@ export class Vitest {
 
         process.exit()
       })
-    }, this.config.teardownTimeout).unref()
+    }, this.config.teardownTimeout)
+    teardownWatchdog.unref()
 
     await this.close()
+    clearTimeout(teardownWatchdog)
     if (force) {
       process.exit()
     }

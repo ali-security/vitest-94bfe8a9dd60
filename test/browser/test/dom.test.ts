@@ -14,8 +14,11 @@ describe('dom related activity', () => {
 
   test('viewport works correctly', async () => {
     await page.viewport(800, 600)
-    expect(window.innerWidth).toBe(800)
-    expect(window.innerHeight).toBe(600)
+    // On the Windows runner firefox keeps reporting the pre-resize dimensions
+    // for a beat after `page.viewport` resolves, so poll instead of reading
+    // once. The assertion is unchanged, it just stops racing the resize.
+    await expect.poll(() => window.innerWidth).toBe(800)
+    await expect.poll(() => window.innerHeight).toBe(600)
   })
 
   test('element doesn\'t exist', async () => {

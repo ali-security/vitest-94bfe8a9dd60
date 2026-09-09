@@ -33,6 +33,11 @@ export default defineConfig({
   test: {
     include: ['test/**.test.{ts,js,tsx}'],
     includeSource: ['src/*.ts'],
+    // The Windows runner drives firefox through webdriverio much slower than
+    // the other runners, so interaction-heavy specs (keyboard, wheel) trip the
+    // 15s browser default there. Give that platform headroom; everywhere else
+    // keeps the upstream default.
+    testTimeout: process.platform === 'win32' ? 60_000 : undefined,
     // having a snapshot environment doesn't affect browser tests
     snapshotEnvironment: './custom-snapshot-env.ts',
     env: {
